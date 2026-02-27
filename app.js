@@ -37,12 +37,115 @@ function setupTabs() {
     });
 }
 
+// Default provider configurations
+const providerDefaults = {
+    openai: {
+        baseUrl: 'https://api.openai.com/v1',
+        apiType: 'openai-completions',
+        requiresApiKey: true
+    },
+    anthropic: {
+        baseUrl: 'https://api.anthropic.com/v1',
+        apiType: 'anthropic',
+        requiresApiKey: true
+    },
+    moonshot: {
+        baseUrl: 'https://api.moonshot.cn/v1',
+        apiType: 'openai-completions',
+        requiresApiKey: true
+    },
+    volcengine: {
+        baseUrl: 'https://ark.cn-beijing.volces.com/api/v3',
+        apiType: 'openai-completions',
+        requiresApiKey: true
+    },
+    aliyun: {
+        baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+        apiType: 'openai-completions',
+        requiresApiKey: true
+    },
+    baidu: {
+        baseUrl: 'https://aip.baidubce.com/rpc/2.0/ai_custom/v1/wenxinworkshop/chat',
+        apiType: 'custom',
+        requiresApiKey: true
+    },
+    tencent: {
+        baseUrl: 'https://api.lkeap.cloud.tencent.com/v1',
+        apiType: 'openai-completions',
+        requiresApiKey: true
+    },
+    deepseek: {
+        baseUrl: 'https://api.deepseek.com/v1',
+        apiType: 'openai-completions',
+        requiresApiKey: true
+    },
+    ollama: {
+        baseUrl: 'http://localhost:11434/v1',
+        apiType: 'openai-completions',
+        requiresApiKey: false
+    },
+    llamacpp: {
+        baseUrl: 'http://localhost:8080/v1',
+        apiType: 'openai-completions',
+        requiresApiKey: false
+    },
+    'vllm': {
+        baseUrl: 'http://localhost:8000/v1',
+        apiType: 'openai-completions',
+        requiresApiKey: false
+    },
+    'text-gen-webui': {
+        baseUrl: 'http://localhost:5000/v1',
+        apiType: 'openai-completions',
+        requiresApiKey: false
+    }
+};
+
 // Setup forms
 function setupForms() {
     addProviderForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         await addProvider();
     });
+
+    // Auto-fill when provider selection changes
+    const providerSelect = document.getElementById('providerSelect');
+    providerSelect.addEventListener('change', autoFillProvider);
+}
+
+// Auto-fill provider information based on selection
+function autoFillProvider() {
+    const providerSelect = document.getElementById('providerSelect');
+    const selectedProvider = providerSelect.value;
+    const customNameGroup = document.getElementById('customNameGroup');
+    const baseUrlInput = document.getElementById('baseUrl');
+    const apiTypeSelect = document.getElementById('apiType');
+
+    // Show/hide custom name input
+    if (selectedProvider === 'custom') {
+        customNameGroup.style.display = 'block';
+        baseUrlInput.value = '';
+        baseUrlInput.placeholder = '请输入 Base URL';
+        apiTypeSelect.value = 'openai-completions';
+    } else if (selectedProvider) {
+        customNameGroup.style.display = 'none';
+        const defaults = providerDefaults[selectedProvider];
+        if (defaults) {
+            baseUrlInput.value = defaults.baseUrl;
+            apiTypeSelect.value = defaults.apiType;
+            // Update placeholder for API key based on requirement
+            const apiKeyInput = document.getElementById('apiKey');
+            if (defaults.requiresApiKey) {
+                apiKeyInput.placeholder = '输入 API Key';
+            } else {
+                apiKeyInput.placeholder = '本地部署通常不需要 API Key';
+            }
+        }
+    } else {
+        customNameGroup.style.display = 'none';
+        baseUrlInput.value = '';
+        baseUrlInput.placeholder = '例如: https://api.openai.com/v1';
+    }
 }
 
 // Load configuration from file
@@ -66,10 +169,29 @@ async function loadConfig() {
 
 // Add new provider
 async function addProvider() {
-    const providerName = document.getElementById('providerName').value.trim();
+    const providerSelect = document.getElementById('providerSelect').value;
+    const customNameInput = document.getElementById('customProviderName');
+    let providerName;
+
+    if (providerSelect === 'custom') {
+        providerName = customNameInput.value.trim();
+    } else {
+        providerName = providerSelect;
+    }
+
     const apiType = document.getElementById('apiType').value;
     const baseUrl = document.getElementById('baseUrl').value.trim();
     const apiKey = document.getElementById('apiKey').value.trim();
+
+    if (!providerName) {
+        showError('请选择或输入供应商名称');
+        return;
+    }
+
+    if (!baseUrl) {
+        showError('请填写 Base URL');
+        return;
+    }
 
     if (!providerName || !baseUrl) {
         showError('请填写必填字段');
