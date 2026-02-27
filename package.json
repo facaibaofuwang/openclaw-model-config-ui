@@ -1,0 +1,22 @@
+{
+  "name": "openclaw-model-config-ui",
+  "version": "1.0.0",
+  "description": "OpenClaw 模型配置可视化界面 - 使用 OpenClaw 自动化开发",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": [
+    "openclaw",
+    "model-config",
+    "ai",
+    "llm",
+    "configuration"
+  ],
+  "author": "OpenClaw AI Assistant",
+  "license": "MIT",
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}
