@@ -228,7 +228,77 @@ function handleApiRequest(req, res) {
         return;
     }
 
-    // Add model
+    // Add or Edit model
+    if (req.url === '/api/save-model' && req.method === 'POST') {
+        let body = '';
+        req.on('data', chunk => body += chunk);
+        req.on('end', () => {
+            try {
+                const { providerName, originalModelId, model } = JSON.parse(body);
+                const config = readConfig();
+
+                if (!config) {
+                    res.writeHead(500, { 'Content-Type': 'application/json', ...corsHeaders });
+                    res.end(JSON.stringify({ success: false, error: 'Failed to read config' }));
+                    return;
+                }
+
+                // Check provider exists
+                if (!config.models || !config.models.providers || !config.models.providers[providerName]) {
+                    res.writeHead(400, { 'Content-Type': 'application/json', ...corsHeaders });
+                    res.end(JSON.stringify({ success: false, error: 'Provider not found' }));
+                    return;
+                }
+
+                const provider = config.models.providers[providerName];
+                if (!provider.models) provider.models = [];
+
+                // Check if we're editing
+                const isEdit = originalModelId && originalModelId !== model.id;
+
+                // Find existing model
+                let existingIndex = -1;
+                if (originalModelId) {
+                    existingIndex = provider.models.findIndex(m => m.id === originalModelId);
+                } else {
+                    existingIndex = provider.models.findIndex(m => m.id === model.id);
+                }
+
+                if (existingIndex >= 0 && !originalModelId) {
+                    // Adding new model with existing ID
+                    res.writeHead(400, { 'Content-Type': 'application/json', ...corsHeaders });
+                    res.end(JSON.stringify({ success: false, error: '模型 ID 已存在' }));
+                    return;
+                }
+
+                if (existingIndex >= 0) {
+                    // Update existing model
+                    provider.models[existingIndex] = model;
+                } else {
+                    // Add new model
+                    provider.models.push(model);
+                }
+
+                // Write config
+                if (writeConfig(config)) {
+                    const message = existingIndex >= 0 ? '模型更新成功' : '模型添加成功';
+                    console.log(`${message} to ${providerName}: ${model.id}`);
+                    res.writeHead(200, { 'Content-Type': 'application/json', ...corsHeaders });
+                    res.end(JSON.stringify({ success: true, modelId: model.id, message }));
+                } else {
+                    res.writeHead(500, { 'Content-Type': 'application/json', ...corsHeaders });
+                    res.end(JSON.stringify({ success: false, error: 'Failed to write config' }));
+                }
+            } catch (error) {
+                console.error('Error saving model:', error);
+                res.writeHead(500, { 'Content-Type': 'application/json', ...corsHeaders });
+                res.end(JSON.stringify({ success: false, error: error.message }));
+            }
+        });
+        return;
+    }
+
+    // Keep add-model for backward compatibility
     if (req.url === '/api/add-model' && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => body += chunk);

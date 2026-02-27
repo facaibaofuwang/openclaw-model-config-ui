@@ -109,45 +109,140 @@ async function addProvider() {
 }
 
 // Add model to provider
-async function addModel(providerName) {
-    const modelId = prompt('请输入模型 ID (例如: gpt-4, claude-3-opus):');
-    if (!modelId) return;
+function addModel(providerName) {
+    openModelModal('add', providerName);
+}
 
-    const modelName = prompt('请输入模型名称 (例如: GPT-4, Claude 3 Opus):', modelId);
-    const contextWindow = prompt('请输入上下文窗口大小 (tokens):', '128000');
-    const maxTokens = prompt('请输入最大输出 tokens:', '4096');
+// Edit model
+function editModel(providerName, model) {
+    openModelModal('edit', providerName, model);
+}
+
+// Open model modal
+function openModelModal(mode, providerName, model = null) {
+    const modal = document.getElementById('modelModal');
+    const title = document.getElementById('modalTitle');
+    const providerInput = document.getElementById('modelProvider');
+    const originalIdInput = document.getElementById('originalModelId');
+    const idInput = document.getElementById('modelId');
+    const nameInput = document.getElementById('modelName');
+    const contextInput = document.getElementById('contextWindow');
+    const maxInput = document.getElementById('maxTokens');
+    const reasoningSelect = document.getElementById('reasoning');
+    const costInputInput = document.getElementById('costInput');
+    const costOutputInput = document.getElementById('costOutput');
+
+    // Set title
+    title.textContent = mode === 'add' ? '添加模型' : '编辑模型';
+
+    // Set provider
+    providerInput.value = providerName;
+    originalIdInput.value = model ? model.id : '';
+
+    if (model) {
+        // Edit mode - fill with existing data
+        idInput.value = model.id;
+        nameInput.value = model.name || model.id;
+        contextInput.value = model.contextWindow || 128000;
+        maxInput.value = model.maxTokens || 4096;
+        reasoningSelect.value = model.reasoning ? 'true' : 'false';
+        costInputInput.value = model.cost?.input || 0;
+        costOutputInput.value = model.cost?.output || 0;
+    } else {
+        // Add mode - clear form
+        idInput.value = '';
+        nameInput.value = '';
+        contextInput.value = 128000;
+        maxInput.value = 4096;
+        reasoningSelect.value = 'false';
+        costInputInput.value = 0;
+        costOutputInput.value = 0;
+    }
+
+    modal.classList.add('active');
+}
+
+// Close model modal
+function closeModelModal() {
+    const modal = document.getElementById('modelModal');
+    modal.classList.remove('active');
+}
+
+// Save model (add or edit)
+async function saveModel() {
+    const providerName = document.getElementById('modelProvider').value;
+    const originalModelId = document.getElementById('originalModelId').value;
+    const modelId = document.getElementById('modelId').value.trim();
+    const modelName = document.getElementById('modelName').value.trim();
+    const contextWindow = parseInt(document.getElementById('contextWindow').value) || 128000;
+    const maxTokens = parseInt(document.getElementById('maxTokens').value) || 4096;
+    const reasoning = document.getElementById('reasoning').value === 'true';
+    const costInput = parseFloat(document.getElementById('costInput').value) || 0;
+    const costOutput = parseFloat(document.getElementById('costOutput').value) || 0;
+
+    if (!modelId) {
+        showError('请填写模型 ID');
+        return;
+    }
 
     try {
-        const response = await fetch('/api/add-model', {
+        const response = await fetch('/api/save-model', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
                 providerName,
-                modelId: modelId.trim(),
-                modelName: modelName?.trim() || modelId.trim(),
-                contextWindow: parseInt(contextWindow) || 128000,
-                maxTokens: parseInt(maxTokens) || 4096
+                originalModelId,
+                model: {
+                    id: modelId,
+                    name: modelName || modelId,
+                    reasoning,
+                    input: ['text'],
+                    cost: {
+                        input: costInput,
+                        output: costOutput,
+                        cacheRead: 0,
+                        cacheWrite: 0
+                    },
+                    contextWindow,
+                    maxTokens
+                }
             })
         });
 
         if (!response.ok) {
-            throw new Error('添加失败');
+            throw new Error('保存失败');
         }
 
         const result = await response.json();
         if (result.success) {
-            showSuccess('模型添加成功');
+            showSuccess(result.message || '模型保存成功');
+            closeModelModal();
             setTimeout(() => loadConfig(), 1000);
         } else {
-            throw new Error(result.error || '添加失败');
+            throw new Error(result.error || '保存失败');
         }
     } catch (e) {
-        console.error('Failed to add model:', e);
-        showError('添加模型失败: ' + e.message);
+        console.error('Failed to save model:', e);
+        showError('保存模型失败: ' + e.message);
     }
 }
+
+// Close modal when clicking outside
+document.addEventListener('click', (e) => {
+    const modal = document.getElementById('modelModal');
+    if (e.target === modal) {
+        closeModelModal();
+    }
+});
+
+// Close modal with Escape key
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        closeModelModal();
+    }
+});
 
 // Delete provider
 async function deleteProvider(providerName) {
@@ -356,17 +451,27 @@ function displayAvailableModels() {
                     <div>📊 上下文: ${model.contextWindow || 'N/A'} tokens</div>
                     <div>💬 最大输出: ${model.maxTokens || 'N/A'} tokens</div>
                     <div>🧠 推理: ${model.reasoning ? '是' : '否'}</div>
+                    <div>💰 成本: ${model.cost?.input || 0}/${model.cost?.output || 0}</div>
                 </div>
-                <button class="select-btn ${isActive ? 'selected' : ''}">
-                    ${isActive ? '✓ 当前使用' : '选择此模型'}
-                </button>
+                <div class="model-card-buttons">
+                    <button class="select-btn ${isActive ? 'selected' : ''}">
+                        ${isActive ? '✓ 当前使用' : '选择此模型'}
+                    </button>
+                    <button class="select-btn btn-warning btn-sm" style="background: #ffc107; color: #212529;">
+                        ✏️ 编辑
+                    </button>
+                </div>
             `;
 
             if (!isActive) {
-                card.querySelector('.select-btn').addEventListener('click', () => {
+                card.querySelector('.select-btn:not(.btn-warning)').addEventListener('click', () => {
                     updateModel(fullId);
                 });
             }
+
+            card.querySelector('.btn-warning').addEventListener('click', () => {
+                editModel(provider, model);
+            });
 
             modelList.appendChild(card);
         });

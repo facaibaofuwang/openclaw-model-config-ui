@@ -23,3 +23,6 @@ Thumbs.db
 # Config (don't commit sensitive data)
 openclaw.json
 *.json.backup
+
+# Setup instructions
+GITHUB_*.md

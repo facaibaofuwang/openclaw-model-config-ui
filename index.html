@@ -383,6 +383,83 @@
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 15px;
         }
+
+        /* Modal styles */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 600px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px 30px;
+            border-radius: 16px 16px 0 0;
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            font-size: 1.5em;
+        }
+
+        .modal-body {
+            padding: 30px;
+        }
+
+        .modal-footer {
+            padding: 20px 30px;
+            border-top: 1px solid #dee2e6;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .btn-sm {
+            padding: 8px 16px;
+            font-size: 0.9em;
+        }
+
+        .btn-warning {
+            background: #ffc107;
+            color: #212529;
+        }
+
+        .btn-warning:hover {
+            background: #e0a800;
+        }
+
+        .model-card-buttons {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .model-card .select-btn {
+            margin-top: 0;
+        }
     </style>
 </head>
 <body>
@@ -467,6 +544,60 @@
                         <div class="provider-list" id="providerList"></div>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Model Modal -->
+    <div class="modal-overlay" id="modelModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">添加模型</h3>
+            </div>
+            <div class="modal-body">
+                <form id="modelForm">
+                    <input type="hidden" id="modelProvider" />
+                    <input type="hidden" id="originalModelId" />
+                    <div class="form-group">
+                        <label>模型 ID *</label>
+                        <input type="text" id="modelId" placeholder="例如: gpt-4, claude-3-opus" required>
+                    </div>
+                    <div class="form-group">
+                        <label>模型名称</label>
+                        <input type="text" id="modelName" placeholder="例如: GPT-4, Claude 3 Opus">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>上下文窗口 (tokens)</label>
+                            <input type="number" id="contextWindow" value="128000" min="1">
+                        </div>
+                        <div class="form-group">
+                            <label>最大输出 (tokens)</label>
+                            <input type="number" id="maxTokens" value="4096" min="1">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>推理模式</label>
+                        <select id="reasoning">
+                            <option value="false">否</option>
+                            <option value="true">是</option>
+                        </select>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>输入成本 (每 1M tokens)</label>
+                            <input type="number" id="costInput" value="0" min="0" step="0.01">
+                        </div>
+                        <div class="form-group">
+                            <label>输出成本 (每 1M tokens)</label>
+                            <input type="number" id="costOutput" value="0" min="0" step="0.01">
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModelModal()">取消</button>
+                <button class="btn btn-primary" onclick="saveModel()">保存</button>
             </div>
         </div>
     </div>
